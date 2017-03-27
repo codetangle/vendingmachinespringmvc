@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+              xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/mvc
+                           http://www.springframework.org/schema/mvc/spring-mvc.xsd
+                           http://www.springframework.org/schema/tx 
+                           http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.2.xsd"> 
+
+    <!-- Bean definitions go here -->
+    <bean
+        class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix">
+            <value>/jsp/</value>
+        </property>
+        <property name="suffix">
+            <value>.jsp</value>
+        </property>
+    </bean>
+    
+    <bean id="inventoryDao" 
+          class="com.sg.vendingmachinespringmvc.dao.InventoryDaoFileImpl">
+          <constructor-arg value="vendingMachine_inventory.txt"/>
+    </bean>
+    
+    <bean id="balanceDao" 
+          class="com.sg.vendingmachinespringmvc.dao.BalanceDaoFileImpl">
+          <constructor-arg value="vendingMachine_balance.txt"/>
+    </bean>
+    
+    <bean id="auditDao" class="com.sg.vendingmachinespringmvc.dao.AuditDaoFileImpl">
+        <constructor-arg value="vendingMachine_auditLog.txt"/>
+        <constructor-arg value="vendingMachine_errorLog.txt"/>
+    </bean>
+    
+    <bean id="currentData" 
+          class="com.sg.vendingmachinespringmvc.dao.CurrentDataInMemoryImpl"/>
+    
+    <bean id="webService" class="com.sg.vendingmachinespringmvc.service.WebServiceLayerImpl">
+        <constructor-arg ref="currentData"/>
+    </bean>
+          
+    <bean id="service" 
+          class="com.sg.vendingmachinespringmvc.service.VendingMachineServiceLayerImpl">
+        <constructor-arg ref="inventoryDao"/>
+        <constructor-arg ref="balanceDao"/>
+    </bean>
+    
+    <bean id="advice" class="com.sg.vendingmachinespringmvc.advice.VendingMachineAdvice">
+        <constructor-arg ref="inventoryDao"/>
+        <constructor-arg ref="balanceDao"/>
+        <constructor-arg ref="auditDao"/>
+    </bean>
+    
+    <aop:config>
+        <aop:aspect ref="advice">
+            <aop:after-returning 
+                method="createAuditEntry"
+                pointcut="execution(* com.sg.vendingmachinespringmvc.service.VendingMachineServiceLayer.vendItem(..))"
+            />
+            <aop:after-throwing
+                method="writeExceptionAudit"
+                throwing="ex"
+                pointcut="execution(* com.sg.vendingmachinespringmvc.service.VendingMachineServiceLayer.vendItem(..))"
+            />
+            <aop:after-throwing 
+                method="writeExceptionAudit"
+                throwing="ex"
+                pointcut="execution(* com.sg.vendingmachinespringmvc.service.VendingMachineServiceLayer.vendItem(..))"
+            />
+        </aop:aspect>
+    </aop:config>
+</beans>
